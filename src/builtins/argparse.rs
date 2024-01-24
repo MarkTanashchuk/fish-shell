@@ -88,11 +88,11 @@ fn check_for_mutually_exclusive_flags(
     opts: &ArgParseCmdOpts,
     streams: &mut IoStreams,
 ) -> Option<c_int> {
-    for opt_spec in opts.options.values() {
-        if opt_spec.num_seen == 0 {
-            continue;
-        }
-
+    for opt_spec in opts
+        .options
+        .values()
+        .filter(|opt_spec| opt_spec.num_seen == 0)
+    {
         // We saw this option at least once. Check all the sets of mutually exclusive options to see
         // if this option appears in any of them.
         for xarg_set in opts
