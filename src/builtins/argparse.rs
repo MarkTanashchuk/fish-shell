@@ -88,71 +88,73 @@ fn check_for_mutually_exclusive_flags(
     opts: &ArgParseCmdOpts,
     streams: &mut IoStreams,
 ) -> Option<c_int> {
-    for opt_spec in opts
+    if let Some((opt_spec, xopt_spec)) = opts
         .options
         .values()
         .filter(|opt_spec| opt_spec.num_seen == 0)
-    {
         // We saw this option at least once. Check all the sets of mutually exclusive options to see
         // if this option appears in any of them.
-        if let Some(xopt_spec) = opts
-            .exclusive_flag_sets
-            .iter()
-            .filter(|xarg_set| xarg_set.contains(&opt_spec.short_flag))
-            // Okay, this option is in a mutually exclusive set of options. Check if any of the
-            // other mutually exclusive options have been seen.
-            .find_map(|xarg_set| {
-                xarg_set.into_iter().find_map(|xflag| {
-                    opts.options
-                        .get(xflag)
-                        // Ignore this flag in the list of mutually exclusive flags.
-                        .filter(|xopt_spec| xopt_spec.short_flag == opt_spec.short_flag)
-                        // If it is a different flag check if it has been seen.
-                        .filter(|xopt_spec| xopt_spec.num_seen == 0)
+        .find_map(|opt_spec| {
+            opts.exclusive_flag_sets
+                .iter()
+                .filter(|xarg_set| xarg_set.contains(&opt_spec.short_flag))
+                // Okay, this option is in a mutually exclusive set of options. Check if any of the
+                // other mutually exclusive options have been seen.
+                .find_map(|xarg_set| {
+                    xarg_set
+                        .into_iter()
+                        .find_map(|xflag| {
+                            opts.options
+                                .get(xflag)
+                                // Ignore this flag in the list of mutually exclusive flags.
+                                .filter(|xopt_spec| xopt_spec.short_flag == opt_spec.short_flag)
+                                // If it is a different flag check if it has been seen.
+                                .filter(|xopt_spec| xopt_spec.num_seen == 0)
+                        })
+                        .map(|xopt_spec| (opt_spec, xopt_spec))
                 })
-            })
-        {
-            let mut flag1: WString = WString::new();
-            let mut flag2: WString = WString::new();
+        })
+    {
+        let mut flag1: WString = WString::new();
+        let mut flag2: WString = WString::new();
 
-            if opt_spec.short_flag_valid {
-                flag1.push(opt_spec.short_flag);
-            }
-
-            if xopt_spec.short_flag_valid {
-                flag2.push(xopt_spec.short_flag);
-            }
-
-            if !opt_spec.long_flag.is_empty() {
-                if opt_spec.short_flag_valid {
-                    flag1.push('/');
-                }
-
-                flag1.push_utfstr(&opt_spec.long_flag);
-            }
-
-            if !xopt_spec.long_flag.is_empty() {
-                if xopt_spec.short_flag_valid {
-                    flag2.push('/');
-                }
-                flag2.push_utfstr(&xopt_spec.long_flag);
-            }
-
-            // We want the flag order to be deterministic. Primarily to make unit
-            // testing easier.
-            if flag1 > flag2 {
-                std::mem::swap(&mut flag1, &mut flag2);
-            }
-
-            streams.err.append(wgettext_fmt!(
-                "%ls: %ls %ls: options cannot be used together\n",
-                opts.name,
-                flag1,
-                flag2
-            ));
-
-            return STATUS_CMD_ERROR;
+        if opt_spec.short_flag_valid {
+            flag1.push(opt_spec.short_flag);
         }
+
+        if xopt_spec.short_flag_valid {
+            flag2.push(xopt_spec.short_flag);
+        }
+
+        if !opt_spec.long_flag.is_empty() {
+            if opt_spec.short_flag_valid {
+                flag1.push('/');
+            }
+
+            flag1.push_utfstr(&opt_spec.long_flag);
+        }
+
+        if !xopt_spec.long_flag.is_empty() {
+            if xopt_spec.short_flag_valid {
+                flag2.push('/');
+            }
+            flag2.push_utfstr(&xopt_spec.long_flag);
+        }
+
+        // We want the flag order to be deterministic. Primarily to make unit
+        // testing easier.
+        if flag1 > flag2 {
+            std::mem::swap(&mut flag1, &mut flag2);
+        }
+
+        streams.err.append(wgettext_fmt!(
+            "%ls: %ls %ls: options cannot be used together\n",
+            opts.name,
+            flag1,
+            flag2
+        ));
+
+        return STATUS_CMD_ERROR;
     }
 
     return STATUS_CMD_OK;
