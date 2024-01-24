@@ -109,7 +109,7 @@ fn check_for_mutually_exclusive_flags(
                                 // Ignore this flag in the list of mutually exclusive flags.
                                 .filter(|xopt_spec| xopt_spec.short_flag == opt_spec.short_flag)
                                 // If it is a different flag check if it has been seen.
-                                .filter(|xopt_spec| xopt_spec.num_seen == 0)
+                                .filter(|xopt_spec| xopt_spec.num_seen != 0)
                         })
                         .map(|xopt_spec| (opt_spec, xopt_spec))
                 })
