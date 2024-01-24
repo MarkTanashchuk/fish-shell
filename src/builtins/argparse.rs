@@ -100,19 +100,14 @@ fn check_for_mutually_exclusive_flags(
                 // Okay, this option is in a mutually exclusive set of options. Check if any of the
                 // other mutually exclusive options have been seen.
                 for xflag in xarg_set {
-                    let Some(xopt_spec) = opts.options.get(xflag) else {
+                    let Some(xopt_spec) = opts.options.get(xflag)
+                        // Ignore this flag in the list of mutually exclusive flags.
+                        .filter(|xopt_spec| xopt_spec.short_flag == opt_spec.short_flag)
+                        // If it is a different flag check if it has been seen.
+                        .filter(|xopt_spec| xopt_spec.num_seen == 0)
+                    else {
                         continue;
                     };
-
-                    // Ignore this flag in the list of mutually exclusive flags.
-                    if xopt_spec.short_flag == opt_spec.short_flag {
-                        continue;
-                    }
-
-                    // If it is a different flag check if it has been seen.
-                    if xopt_spec.num_seen == 0 {
-                        continue;
-                    }
 
                     let mut flag1: WString = WString::new();
                     let mut flag2: WString = WString::new();
