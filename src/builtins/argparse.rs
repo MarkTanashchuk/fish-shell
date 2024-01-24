@@ -112,20 +112,24 @@ fn check_for_mutually_exclusive_flags(
                     // If it is a different flag check if it has been seen.
                     if xopt_spec.num_seen != 0 {
                         let mut flag1: WString = WString::new();
+                        let mut flag2: WString = WString::new();
+
                         if opt_spec.short_flag_valid {
                             flag1.push(opt_spec.short_flag);
                         }
+
+                        if xopt_spec.short_flag_valid {
+                            flag2.push(xopt_spec.short_flag);
+                        }
+
                         if !opt_spec.long_flag.is_empty() {
                             if opt_spec.short_flag_valid {
                                 flag1.push('/');
                             }
+
                             flag1.push_utfstr(&opt_spec.long_flag);
                         }
 
-                        let mut flag2: WString = WString::new();
-                        if xopt_spec.short_flag_valid {
-                            flag2.push(xopt_spec.short_flag);
-                        }
                         if !xopt_spec.long_flag.is_empty() {
                             if xopt_spec.short_flag_valid {
                                 flag2.push('/');
@@ -138,12 +142,14 @@ fn check_for_mutually_exclusive_flags(
                         if flag1 > flag2 {
                             std::mem::swap(&mut flag1, &mut flag2);
                         }
+
                         streams.err.append(wgettext_fmt!(
                             "%ls: %ls %ls: options cannot be used together\n",
                             opts.name,
                             flag1,
                             flag2
                         ));
+
                         return STATUS_CMD_ERROR;
                     }
                 }
